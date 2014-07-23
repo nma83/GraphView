@@ -9,7 +9,7 @@ At the moment there are two different types:
 <li>Bar Charts</li>
 </ul>
 
-Tested on Android 1.6, 2.2, 2.3 and 3.0 (honeycomb, tablet).
+Tested on Android 1.6, 2.2, 2.3 and 3.0 (honeycomb, tablet), 4.0.
 
 <img src="https://github.com/jjoe64/GraphView/raw/master/GVLine.jpg" height="200" />
 <img src="https://github.com/jjoe64/GraphView/raw/master/GVBar.png" height="200" />
@@ -44,33 +44,15 @@ Since Android 2.3! With two-fingers touch scale gesture (Multi-touch), the viewp
 * Background (line graph)
 Optionally draws a light background under the diagram stroke.
 * Manual Y axis limits
+* Realtime Graph (Live)
+* And more
 
 <h2>How to use</h2>
-<a href="http://www.jjoe64.com/p/graphview-library.html">View GraphView page http://www.jjoe64.com/p/graphview-library.html</a>
-
-Very simple example:
-<pre>
-// init example series data
-GraphViewSeries exampleSeries = new GraphViewSeries(new GraphViewData[] {
-	      new GraphViewData(1, 2.0d)
-	      , new GraphViewData(2, 1.5d)
-	      , new GraphViewData(3, 2.5d)
-	      , new GraphViewData(4, 1.0d)
-});
-
-GraphView graphView = new LineGraphView(
-      this // context
-      , "GraphViewDemo" // heading
-);
-graphView.addSeries(exampleSeries); // data
-
-LinearLayout layout = (LinearLayout) findViewById(R.id.layout);
-layout.addView(graphView);
-</pre>
+<a href="http://android-graphview.org">View GraphView page <br/> http://android-graphview.org</a>
 
 <h2>Important</h2>
 To show you how to integrate the library into an existing project see the GraphView-Demos project!
 See GraphView-Demos for examples.
 <a href="https://github.com/jjoe64/GraphView-Demos">https://github.com/jjoe64/GraphView-Demos<br/>
-<a href="http://www.jjoe64.com/p/graphview-library.html">View GraphView page http://www.jjoe64.com/p/graphview-library.html</a>
+<a href="http://android-graphview.org">View GraphView page http://android-graphview.org</a>
 
