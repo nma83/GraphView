@@ -126,4 +126,13 @@ public class BarGraphView extends GraphView {
 	public void setValuesOnTopColor(int valuesOnTopColor) {
 		this.valuesOnTopColor = valuesOnTopColor;
 	}
+
+    @Override
+    protected double transformPointToSample(double point, float border, int numPoints) {
+        double horstart = 0;
+        float colwidth = ((getWidth() - 1) - (2 * border)) / numPoints;
+        double x = point - horstart;
+        x = Math.floor(x / colwidth);
+        return x;
+    }
 }

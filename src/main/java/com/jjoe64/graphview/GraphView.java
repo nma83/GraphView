@@ -60,6 +60,8 @@ abstract public class GraphView extends LinearLayout {
 		private float lastTouchEventX;
 		private float graphwidth;
 		private boolean scrollingStarted;
+        static final float RESIST_MOVE_THRESHOLD = 2.0f; // difference in X to not detect as move
+        private float origDown;
 
 		/**
 		 * @param context
@@ -188,17 +190,31 @@ abstract public class GraphView extends LinearLayout {
 				handled = scaleDetector.isInProgress();
 			}
 			if (!handled) {
-				//Log.d("GraphView", "on touch event scale not handled+"+lastTouchEventX);
+                boolean hadMoved = false;
+
 				// if not scaled, scroll
 				if ((event.getAction() & MotionEvent.ACTION_DOWN) == MotionEvent.ACTION_DOWN &&
 						(event.getAction() & MotionEvent.ACTION_MOVE) == 0) {
 					scrollingStarted = true;
 					handled = true;
+
+                    if (!((event.getAction() & MotionEvent.ACTION_UP) == MotionEvent.ACTION_UP)) {
+                        origDown = event.getX();
+                        handleSelect(event, false);
+                    }
 				}
 				if ((event.getAction() & MotionEvent.ACTION_UP) == MotionEvent.ACTION_UP) {
-					scrollingStarted = false;
+                    if ((lastTouchEventX != 0) && !resistMove(origDown, event.getX())) hadMoved = true;
+                    else hadMoved = false;
+
+                    scrollingStarted = false;
 					lastTouchEventX = 0;
 					handled = true;
+
+                    // Sample select callback
+                    if (!hadMoved) {
+                        handleSelect(event, true);
+                    }
 				}
 				if ((event.getAction() & MotionEvent.ACTION_MOVE) == MotionEvent.ACTION_MOVE) {
 					if (scrollingStarted) {
@@ -209,7 +225,11 @@ abstract public class GraphView extends LinearLayout {
 						handled = true;
 					}
 				}
-				if (handled)
+
+                //Log.d("GraphView", "on touch event scale not handled " + lastTouchEventX
+                //        + " event " + event.toString() + " moved " + hadMoved + " ox " + origDown);
+
+                if (handled)
 					invalidate();
 			} else {
 				// currently scaling
@@ -218,6 +238,15 @@ abstract public class GraphView extends LinearLayout {
 			}
 			return handled;
 		}
+
+        // Resist a move if movement is small
+        private boolean resistMove(float initX, float finalX) {
+            if (Math.abs(initX - finalX) > RESIST_MOVE_THRESHOLD) {
+                return false;
+            } else {
+                return true;
+            }
+        }
 	}
 
 	/**
@@ -311,6 +340,65 @@ abstract public class GraphView extends LinearLayout {
 		}
 	}
 
+    // Arguments are the event that occured and whether that finishes the select
+    private boolean handleSelect(MotionEvent inEvent, boolean finished) {
+        GraphViewDataInterface[] data;
+
+        boolean retVal = false;
+        data = graphSeries.get(0).values;
+
+        if (finished) {
+            int selectIndex = 0;
+            double selectSample = 0;
+            // Calculate nearest sample point
+            selectSample = GraphView.this.transformPointToSample(inEvent.getX(),
+                    GraphViewConfig.BORDER, data.length);
+
+            for (GraphViewDataInterface i : data) {
+                //Log.d(getClass().getName(), "Comparing sample " + i.getX() + " with touch " + selectSample);
+                if (i.getX() >= selectSample) {
+                    retVal = true;
+                    break;
+                }
+                selectIndex++;
+            }
+            if (retVal == false) {
+                selectIndex = 0;
+            }
+
+	    // Check if point is in view
+	    if (viewportSize != 0) {
+		boolean redrawIt = false;
+
+		if (data[selectIndex].getX() > (viewportStart + viewportSize)) {
+		    viewportStart = data[selectIndex].getX() - (viewportSize / 2);
+		    redrawIt = true;
+		} else if (data[selectIndex].getX() < viewportStart) {
+		    if (data[selectIndex].getX() > (viewportSize / 2))
+			viewportStart = data[selectIndex].getX() - (viewportSize / 2);
+		    else
+			viewportStart = data[selectIndex].getX();
+		    redrawIt = true;
+		}
+
+		if (redrawIt)
+		    redrawAll();
+	    }
+
+            // Call overriden method
+            if (selectHandler != null)
+                selectHandler.onGraphSelect(selectIndex);
+            retVal = true;
+        }
+
+        return retVal;
+    }
+
+    abstract public interface GraphSelectHandler {
+        // Function to call overridable user callback for select events
+        abstract public void onGraphSelect(int selectIndex);
+    }
+
 	protected final Paint paint;
 	private String[] horlabels;
 	private String[] verlabels;
@@ -342,6 +430,7 @@ abstract public class GraphView extends LinearLayout {
 	private boolean staticVerticalLabels;
     private boolean showHorizontalLabels = true;
     private boolean showVerticalLabels = true;
+    private GraphSelectHandler selectHandler;
 
 	public GraphView(Context context, AttributeSet attrs) {
 		this(context, attrs.getAttributeValue(null, "title"));
@@ -1025,4 +1114,16 @@ abstract public class GraphView extends LinearLayout {
         return showVerticalLabels;
     }
 
+    /*
+     * For OnSelect callback
+     */
+    /**
+     * Set's the select handler class for 1st series in graph
+     * @param handle instance
+     */
+    public void setSelectHandler(GraphSelectHandler handle) {
+        selectHandler = handle;
+    }
+
+    abstract double transformPointToSample(double point, float border, int len);
 }
