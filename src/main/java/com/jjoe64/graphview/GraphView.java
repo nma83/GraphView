@@ -96,7 +96,7 @@ abstract public class GraphView extends LinearLayout {
 			if (labelTextHeight == null || horLabelTextWidth == null) {
 				paint.setTextSize(getGraphViewStyle().getTextSize());
 				double testX = ((getMaxX(true)-getMinX(true))*0.783)+getMinX(true);
-				String testLabel = formatLabel(testX, true);
+				String testLabel = formatLabel(testX, true, 0, 0);
 				paint.getTextBounds(testLabel, 0, testLabel.length(), textBounds);
 				labelTextHeight = (textBounds.height());
 				horLabelTextWidth = (textBounds.width());
@@ -170,6 +170,10 @@ abstract public class GraphView extends LinearLayout {
 				if (!staticHorizontalLabels) horlabels = null;
 				if (!staticVerticalLabels) verlabels = null;
 				viewVerLabels.invalidate();
+			}
+			// Invalidate selection
+			for (int i=0; i<graphSeries.size(); i++) {
+			    graphSeries.get(i).style.highlightPoints = false;
 			}
 			invalidate();
 		}
@@ -297,7 +301,7 @@ abstract public class GraphView extends LinearLayout {
 			if (labelTextHeight == null || verLabelTextWidth == null) {
 				paint.setTextSize(getGraphViewStyle().getTextSize());
 				double testY = ((getMaxY()-getMinY())*0.783)+getMinY();
-				String testLabel = formatLabel(testY, false);
+				String testLabel = formatLabel(testY, false, 0, 0);
 				paint.getTextBounds(testLabel, 0, testLabel.length(), textBounds);
 				labelTextHeight = (textBounds.height());
 				verLabelTextWidth = (textBounds.width());
@@ -350,18 +354,29 @@ abstract public class GraphView extends LinearLayout {
         if (finished) {
             int selectIndex = 0;
             double selectSample = 0;
+	    int startPoint = 0;
+	    boolean viewBefore = false;
+
             // Calculate nearest sample point
             selectSample = GraphView.this.transformPointToSample(inEvent.getX(),
                     GraphViewConfig.BORDER, data.length);
 
             for (GraphViewDataInterface i : data) {
-                //Log.d(getClass().getName(), "Comparing sample " + i.getX() + " with touch " + selectSample);
                 if (i.getX() >= selectSample) {
                     retVal = true;
                     break;
                 }
+		if (i.getX() < viewportStart) {
+		    startPoint = selectIndex;
+		    viewBefore = true;
+		}
                 selectIndex++;
             }
+	    if (viewBefore)
+		startPoint++;
+	    else
+		startPoint = 0;
+
             if (retVal == false) {
                 selectIndex = 0;
             }
@@ -383,11 +398,12 @@ abstract public class GraphView extends LinearLayout {
 
 		if (redrawIt)
 		    redrawAll();
-	    }
+	    } else
+		startPoint = 0;
 
             // Call overriden method
             if (selectHandler != null)
-                selectHandler.onGraphSelect(selectIndex);
+                selectHandler.onGraphSelect(selectIndex, startPoint);
             retVal = true;
         }
 
@@ -396,7 +412,7 @@ abstract public class GraphView extends LinearLayout {
 
     abstract public interface GraphSelectHandler {
         // Function to call overridable user callback for select events
-        abstract public void onGraphSelect(int selectIndex);
+        abstract public void onGraphSelect(int selectIndex, int startPoint);
     }
 
 	protected final Paint paint;
@@ -567,6 +583,20 @@ abstract public class GraphView extends LinearLayout {
 
 	abstract protected void drawSeries(Canvas canvas, GraphViewDataInterface[] values, float graphwidth, float graphheight, float border, double minX, double minY, double diffX, double diffY, float horstart, GraphViewSeriesStyle style);
 
+    /** 
+     * Highlights a sample in the graph. Graph should be redrawn after this call
+     * 
+     * @param series and sample index to be highlighted, enable flag
+     */
+    public void highlightSample(int seriesIndex, boolean enable, int sampleIndex) {
+	if (graphSeries.get(seriesIndex) != null) {
+	    graphSeries.get(seriesIndex).style.highlightPoints = enable;
+	    graphSeries.get(seriesIndex).style.highlightSample = sampleIndex;
+	    // Redraw the graph
+	    redrawAll();
+	}
+    }
+
 	/**
 	 * formats the label
 	 * use #setCustomLabelFormatter or static labels if you want custom labels
@@ -576,10 +606,11 @@ abstract public class GraphView extends LinearLayout {
 	 * @deprecated use {@link #setCustomLabelFormatter(CustomLabelFormatter)}
 	 * @return value to display
 	 */
+
 	@Deprecated
-	protected String formatLabel(double value, boolean isValueX) {
+	protected String formatLabel(double value, boolean isValueX, int index, int lastIndex) {
 		if (customLabelFormatter != null) {
-			String label = customLabelFormatter.formatLabel(value, isValueX);
+		    String label = customLabelFormatter.formatLabel(value, isValueX, index, lastIndex);
 			if (label != null) {
 				return label;
 			}
@@ -615,7 +646,7 @@ abstract public class GraphView extends LinearLayout {
 		double min = getMinX(false);
 		double max = getMaxX(false);
 		for (int i=0; i<=numLabels; i++) {
-			labels[i] = formatLabel(min + ((max-min)*i/numLabels), true);
+		    labels[i] = formatLabel(min + ((max-min)*i/numLabels), true, i, numLabels);
 		}
 		return labels;
 	}
@@ -645,7 +676,7 @@ abstract public class GraphView extends LinearLayout {
 		}
 
 		for (int i=0; i<=numLabels; i++) {
-			labels[numLabels-i] = formatLabel(min + ((max-min)*i/numLabels), false);
+		    labels[numLabels-i] = formatLabel(min + ((max-min)*i/numLabels), false, i, numLabels);
 		}
 		return labels;
 	}

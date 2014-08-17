@@ -25,6 +25,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.jjoe64.graphview.GraphViewSeries.GraphViewSeriesStyle;
 
@@ -92,6 +93,9 @@ public class LineGraphView extends GraphView {
 				// draw data point
 				if (drawDataPoints) {
 					//fix: last value was not drawn. Draw here now the end values
+				    if (style.highlightPoints && (style.highlightSample == i)) {
+					canvas.drawCircle(endX, endY, dataPointsRadius*2, paint);
+				    } else
 					canvas.drawCircle(endX, endY, dataPointsRadius, paint);
 				}
 
@@ -107,7 +111,11 @@ public class LineGraphView extends GraphView {
 				//fix: last value not drawn as datapoint. Draw first point here, and then on every step the end values (above)
 				float first_X = (float) x + (horstart + 1);
 				float first_Y = (float) (border - y) + graphheight;
-				canvas.drawCircle(first_X, first_Y, dataPointsRadius, paint);
+
+				if (style.highlightPoints && (style.highlightSample == i)) {
+				    canvas.drawCircle(first_X, first_Y, dataPointsRadius*2, paint);
+				} else
+				    canvas.drawCircle(first_X, first_Y, dataPointsRadius, paint);
 			}
 			lastEndY = y;
 			lastEndX = x;

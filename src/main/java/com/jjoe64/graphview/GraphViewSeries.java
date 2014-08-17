@@ -34,6 +34,8 @@ public class GraphViewSeries {
 		public int color = 0xff0077cc;
 		public int thickness = 3;
 		private ValueDependentColor valueDependentColor;
+	    public boolean highlightPoints = false;
+	    public int highlightSample = 0;
 
 		public GraphViewSeriesStyle() {
 			super();
